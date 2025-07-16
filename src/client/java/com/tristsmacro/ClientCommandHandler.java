@@ -8,13 +8,11 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
 
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
 import java.nio.file.Path;
-import net.minecraft.text.Style;
+
+import net.minecraft.util.Util;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -56,11 +54,58 @@ public class ClientCommandHandler {
             )
             .then(ClientCommandManager.literal("openfolder")
                 .executes(ctx -> {
-                    sendFolderLink(ctx.getSource());
+                    openMacroFolder(ctx.getSource());
                     return 1;
                 })
             )
         );
+    }
+
+    private static int openMacroFolder(FabricClientCommandSource source) {
+        try {
+            if (!Files.exists(MACRO_FOLDER)) {
+                Files.createDirectories(MACRO_FOLDER);
+            }
+
+            try {
+                Util.getOperatingSystem().open(MACRO_FOLDER.toAbsolutePath().toUri());
+                return 1;
+            } catch (Exception e) {
+                source.getPlayer().sendMessage(Text.literal("Error when opening folder: " + e.getMessage()), false);
+            }
+
+            // Zweiter Versuch: Desktop API
+            try {
+                if (java.awt.Desktop.isDesktopSupported()) {
+                    java.awt.Desktop.getDesktop().open(MACRO_FOLDER.toFile());
+                    return 1;
+                }
+            } catch (Exception e) {
+                source.getPlayer().sendMessage(Text.literal("Desktop API doesnt work, try last alternative..."), false);
+            }
+
+            // Dritter Versuch: Betriebssystemspezifischer Befehl
+            String os = System.getProperty("os.name").toLowerCase();
+            ProcessBuilder pb;
+
+            if (os.contains("linux")) {
+                pb = new ProcessBuilder("xdg-open", MACRO_FOLDER.toString());
+            } else if (os.contains("mac")) {
+                pb = new ProcessBuilder("open", MACRO_FOLDER.toString());
+            } else if (os.contains("windows")) {
+                pb = new ProcessBuilder("explorer", MACRO_FOLDER.toString());
+            } else {
+                source.getPlayer().sendMessage(Text.literal("OS could not be detected."), false);
+                return 0;
+            }
+
+            pb.start();
+            return 1;
+
+        } catch (Exception e) {
+            source.getPlayer().sendMessage(Text.literal("Error when opening macro folder: " + e.getMessage()), false);
+            return 0;
+        }
     }
 
     private static int createMacroFile(String name, FabricClientCommandSource source) {
@@ -96,36 +141,6 @@ public class ClientCommandHandler {
         }
         return builder.buildFuture();
     };
-    /*private static void sendFolderLink(FabricClientCommandSource source) {
-        Path folderPath = MACRO_FOLDER.toAbsolutePath();
-        String folderStr = folderPath.toString();
-
-        Text message = Text.literal("Open macro folder")
-            .setStyle(Style.EMPTY
-                .withColor(Formatting.BLUE)
-                .withUnderline(true)
-                .withClickEvent(new ClickEvent.OpenFile(folderStr))
-                .withHoverEvent(new HoverEvent.ShowText(Text.literal("Click to open macro folder")))
-            );
-
-        source.getPlayer().sendMessage(message, false);
-    }
-*/
-
-private static void sendFolderLink(FabricClientCommandSource source) {
-    Path folderPath = MACRO_FOLDER.toAbsolutePath();
-    String uri = "file:///" + folderPath.toString().replace("\\", "/");
-
-    Text message = Text.literal("Open macro folder")
-        .setStyle(Style.EMPTY
-            .withColor(Formatting.BLUE)
-            .withUnderline(true)
-            .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, uri))
-            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.literal("Click to open macro folder")))
-        );
-
-    source.getPlayer().sendMessage(message, false);
-}
 
     private static int executeMacro(String name, FabricClientCommandSource source) {
         try {
