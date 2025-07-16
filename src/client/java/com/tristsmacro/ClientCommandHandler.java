@@ -87,7 +87,7 @@ public class ClientCommandHandler {
                     .filter(path -> path.toString().endsWith(".macro"))
                     .forEach(path -> {
                         String fileName = path.getFileName().toString();
-                        String macroName = fileName.substring(0, fileName.length() - 7); // strip ".macro"
+                        String macroName = fileName.substring(0, fileName.length() - 6); // strip ".macro"
                         builder.suggest(macroName);
                     });
             }
