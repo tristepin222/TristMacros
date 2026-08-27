@@ -25,44 +25,68 @@ public class ClientCommandHandler {
         "macro_mod_macros"
     );
 
-    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-
+    public static void register(
+        CommandDispatcher<FabricClientCommandSource> dispatcher
+    ) {
         dispatcher.register(
             ClientCommands.literal("macro")
 
                 .then(ClientCommands.literal("create")
-                    .then(ClientCommands.argument("name", StringArgumentType.word())
+                    .then(ClientCommands.argument(
+                        "name",
+                        StringArgumentType.word()
+                    )
                         .executes(ctx -> {
-                            String name = StringArgumentType.getString(ctx, "name");
-                            return createMacroFile(name, ctx.getSource());
+                            String name =
+                                StringArgumentType.getString(ctx, "name");
+
+                            return createMacroFile(
+                                name,
+                                ctx.getSource()
+                            );
                         })
                     )
                 )
 
                 .then(ClientCommands.literal("execute")
-                    .then(ClientCommands.argument("name", StringArgumentType.word())
+                    .then(ClientCommands.argument(
+                        "name",
+                        StringArgumentType.word()
+                    )
                         .suggests(MACRO_NAME_SUGGESTIONS)
                         .executes(ctx -> {
-                            String name = StringArgumentType.getString(ctx, "name");
-                            return executeMacro(name, ctx.getSource());
+                            String name =
+                                StringArgumentType.getString(ctx, "name");
+
+                            return executeMacro(
+                                name,
+                                ctx.getSource()
+                            );
                         })
                     )
                 )
 
                 .then(ClientCommands.literal("delete")
-                    .then(ClientCommands.argument("name", StringArgumentType.word())
+                    .then(ClientCommands.argument(
+                        "name",
+                        StringArgumentType.word()
+                    )
                         .suggests(MACRO_NAME_SUGGESTIONS)
                         .executes(ctx -> {
-                            String name = StringArgumentType.getString(ctx, "name");
-                            return deleteMacro(name, ctx.getSource());
+                            String name =
+                                StringArgumentType.getString(ctx, "name");
+
+                            return deleteMacro(
+                                name,
+                                ctx.getSource()
+                            );
                         })
                     )
                 )
 
                 .then(ClientCommands.literal("openfolder")
                     .executes(ctx -> {
-                        sendFolderLink(ctx.getSource());
-                        return 1;
+                        return openMacroFolder(ctx.getSource());
                     })
                 )
         );
@@ -81,21 +105,25 @@ public class ClientCommandHandler {
 
             if (Files.exists(file)) {
                 source.sendFeedback(
-                    Component.literal("Macro already exists: " + name)
+                    Component.literal(
+                        "Macro already exists: " + name
+                    )
                 );
+
                 return 0;
             }
 
             Files.createFile(file);
 
             source.sendFeedback(
-                Component.literal("Created macro: " + name)
+                Component.literal(
+                    "Created macro: " + name
+                )
             );
 
             return 1;
 
         } catch (IOException e) {
-
             source.sendFeedback(
                 Component.literal(
                     "Error creating macro: " + e.getMessage()
@@ -114,7 +142,9 @@ public class ClientCommandHandler {
 
                 Files.list(MACRO_FOLDER)
                     .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".macro"))
+                    .filter(path ->
+                        path.toString().endsWith(".macro")
+                    )
                     .forEach(path -> {
 
                         String fileName =
@@ -136,30 +166,61 @@ public class ClientCommandHandler {
         return builder.buildFuture();
     };
 
-    private static void sendFolderLink(
-        FabricClientCommandSource source
-    ) {
-        Path folderPath = MACRO_FOLDER.toAbsolutePath();
+   private static int openMacroFolder(FabricClientCommandSource source) {
+        try {
+            if (!Files.exists(MACRO_FOLDER)) {
+                Files.createDirectories(MACRO_FOLDER);
+            }
 
-        String uri =
-            "file:///" +
-            folderPath.toString()
-                .replace("\\", "/");
+            String os = System.getProperty("os.name").toLowerCase();
+            ProcessBuilder process;
 
-        Component message =
-            Component.literal("Open macro folder")
-                .setStyle(
-                    Style.EMPTY
-                        .withColor(ChatFormatting.BLUE)
-                        .withUnderlined(true)
-                        .withClickEvent(
-                            new net.minecraft.network.chat.ClickEvent.OpenUrl(
-                                java.net.URI.create(uri)
-                            )
-                        )
+            if (os.contains("windows")) {
+
+                process = new ProcessBuilder(
+                    "explorer.exe",
+                    MACRO_FOLDER.toAbsolutePath().toString()
                 );
 
-        source.sendFeedback(message);
+            } else if (os.contains("linux")) {
+
+                process = new ProcessBuilder(
+                    "xdg-open",
+                    MACRO_FOLDER.toAbsolutePath().toString()
+                );
+
+            } else if (os.contains("mac")) {
+
+                process = new ProcessBuilder(
+                    "open",
+                    MACRO_FOLDER.toAbsolutePath().toString()
+                );
+
+            } else {
+
+                source.sendFeedback(
+                    Component.literal(
+                        "Could not detect your operating system."
+                    )
+                );
+
+                return 0;
+            }
+
+            process.start();
+            return 1;
+
+        } catch (Exception e) {
+
+            source.sendFeedback(
+                Component.literal(
+                    "Error opening macro folder: " +
+                    e.getMessage()
+                )
+            );
+
+            return 0;
+        }
     }
 
     private static int executeMacro(
@@ -189,6 +250,7 @@ public class ClientCommandHandler {
                 Minecraft.getInstance();
 
             if (client.player == null) {
+
                 source.sendFeedback(
                     Component.literal(
                         "You must be in a world to execute a macro."
