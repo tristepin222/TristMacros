@@ -23,18 +23,14 @@
 		]
 	},
 	"mixins": [
-		"tristsmacro.mixins.json",
-		{
-			"config": "tristsmacro.client.mixins.json",
-			"environment": "client"
-		}
+		"tristsmacro.mixins.json"
 	],
-	"depends": {
-		"fabricloader": ">=0.16.14",
-  		"minecraft": "1.21.4",
-		"java": ">=21",
-		"fabric-api": "*"
-	},
+    "depends": {
+        "fabricloader": ">=0.19.3",
+        "minecraft": "~26.2",
+        "java": ">=25",
+        "fabric-api": "*"
+    },
 	"suggests": {
 		"another-mod": "*"
 	}
